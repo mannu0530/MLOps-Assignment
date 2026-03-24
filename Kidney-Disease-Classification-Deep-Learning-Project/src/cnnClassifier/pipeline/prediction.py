@@ -2,6 +2,7 @@ import numpy as np
 from tensorflow.keras.models import load_model
 from tensorflow.keras.preprocessing import image
 import os
+from pathlib import Path
 
 
 
@@ -12,8 +13,17 @@ class PredictionPipeline:
 
     
     def predict(self):
+        # Check if model exists
+        model_path = os.path.join("model", "model.h5")
+        if not os.path.exists(model_path) or os.path.getsize(model_path) < 1000:
+            # Model doesn't exist or is too small (placeholder)
+            # Try to load from artifacts directory
+            model_path = "artifacts/training/model.h5"
+            if not os.path.exists(model_path) or os.path.getsize(model_path) < 1000:
+                return [{"error": "Model not found. Please run training pipeline first.", "image": "unknown"}]
+        
         # load model
-        model = load_model(os.path.join("model", "model.h5"))
+        model = load_model(model_path)
 
         imagename = self.filename
         test_image = image.load_img(imagename, target_size = (224,224))

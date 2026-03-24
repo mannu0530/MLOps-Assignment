@@ -1,183 +1,364 @@
 # Kidney-Disease-Classification-MLflow-DVC
 
+A deep learning project for classifying kidney CT scan images as Normal or Tumor using CNN (VGG16-based) architecture.
+
+## Project Overview
+
+- **Model**: VGG16-based CNN for binary classification (Normal/Tumor)
+- **ML Framework**: TensorFlow 2.12+
+- **MLOps Tools**: MLflow (experiment tracking), DVC (data versioning), Kubernetes (deployment)
+- **Deployment**: Docker containerized Flask app deployed to Minikube
+
+## Project Structure
+
+```
+Kidney-Disease-Classification-Deep-Learning-Project/
+├── app.py                    # Flask web application
+├── main.py                   # Training pipeline entry point
+├── config/
+│   └── config.yaml          # Configuration file
+├── params.yaml              # Model hyperparameters
+├── dvc.yaml                 # DVC pipeline definition
+├── Dockerfile               # Docker image definition
+├── requirements.txt         # Python dependencies
+├── setup.py                 # Package setup
+├── k8s/                     # Kubernetes deployment files
+│   ├── namespace.yaml
+│   ├── deployment.yaml
+│   ├── service.yaml
+│   └── ...
+├── src/cnnClassifier/       # Source code
+│   ├── components/         # ML components
+│   ├── pipeline/           # ML pipelines
+│   ├── config/             # Configuration management
+│   ├── entity/             # Data entities
+│   ├── utils/              # Utility functions
+│   └── constants/          # Constants
+├── artifacts/              # Model and data artifacts
+├── model/                  # Model files
+└── templates/              # HTML templates
+```
 
 ## Workflows
 
 1. Update config.yaml
-2. Update secrets.yaml [Optional]
-3. Update params.yaml
-4. Update the entity
-5. Update the configuration manager in src config
-6. Update the components
-7. Update the pipeline 
-8. Update the main.py
-9. Update the dvc.yaml
-10. app.py
+2. Update params.yaml (hyperparameters)
+3. Update the entity
+4. Update the configuration manager in src config
+5. Update the components
+6. Update the pipeline
+7. Update the main.py
+8. Update the dvc.yaml
+9. Run app.py for prediction
 
-# How to run?
-### STEPS:
+---
 
-Clone the repository
+# How to Run?
 
-```bash
-https://github.com/krishnaik06/Kidney-Disease-Classification-Deep-Learning-Project
-```
-### STEP 01- Create a conda environment after opening the repository
+## Option 1: Local Development
+
+### STEP 01 - Create a conda environment
 
 ```bash
 conda create -n cnncls python=3.8 -y
-```
-
-```bash
 conda activate cnncls
 ```
 
+### STEP 02 - Install the requirements
 
-### STEP 02- install the requirements
 ```bash
 pip install -r requirements.txt
 ```
 
+### STEP 03 - Run the Flask application
+
 ```bash
-# Finally run the following command
 python app.py
 ```
 
-Now,
-```bash
-open up you local host and port
-```
+The app will start on `http://localhost:8080`
 
+---
 
+## Option 2: Docker Container
 
-
-
-
-## MLflow
-
-- [Documentation](https://mlflow.org/docs/latest/index.html)
-
-- [MLflow tutorial](https://youtu.be/qdcHHrsXA48?si=bD5vDS60akNphkem)
-
-##### cmd
-- mlflow ui
-
-### dagshub
-[dagshub](https://dagshub.com/)
-
-MLFLOW_TRACKING_URI=https://dagshub.com/entbappy/Kidney-Disease-Classification-MLflow-DVC.mlflow \
-MLFLOW_TRACKING_USERNAME=entbappy \
-MLFLOW_TRACKING_PASSWORD=6824692c47a369aa6f9eac5b10041d5c8edbcef0 \
-python script.py
-
-Run this to export as env variables:
+### Build the Docker image
 
 ```bash
-
-export MLFLOW_TRACKING_URI=https://dagshub.com/entbappy/Kidney-Disease-Classification-MLflow-DVC.mlflow
-
-export MLFLOW_TRACKING_USERNAME=entbappy 
-
-export MLFLOW_TRACKING_PASSWORD=6824692c47a369aa6f9eac5b10041d5c8edbcef0
-
+cd Kidney-Disease-Classification-Deep-Learning-Project
+docker build -t kidney-disease-classifier .
 ```
 
+### Run the container
 
-### DVC cmd
+```bash
+docker run -p 8080:8080 kidney-disease-classifier
+```
 
-1. dvc init
-2. dvc repro
-3. dvc dag
+---
 
+## Option 3: Minikube Deployment
+
+### Prerequisites
+
+- Docker installed
+- Minikube installed
+- kubectl installed
+
+### STEP 01 - Start Minikube
+
+```bash
+minikube start --driver=docker
+```
+
+### STEP 02 - Build and load Docker image to Minikube
+
+```bash
+# Build the image
+eval $(minikube docker-env)
+docker build -t kidney-disease-classifier:latest .
+
+# Or load existing image to minikube
+minikube image load kidney-disease-classifier:latest
+```
+
+### STEP 03 - Apply Kubernetes manifests
+
+```bash
+cd k8s
+kubectl apply -f namespace.yaml
+kubectl apply -f deployment.yaml
+kubectl apply -f service.yaml
+```
+
+### STEP 04 - Verify deployment
+
+```bash
+kubectl get pods -n mlops
+kubectl get svc -n mlops
+```
+
+### STEP 05 - Access the application
+
+```bash
+minikube service kidney-disease-classifier-service -n mlops
+```
+
+---
+
+## Training the Model
+
+### Local Training
+
+```bash
+python main.py
+```
+
+This will run the full pipeline:
+1. Data Ingestion
+2. Prepare Base Model
+3. Model Training
+4. Model Evaluation
+
+### Training in Kubernetes
+
+```bash
+kubectl exec -n mlops <pod-name> -- python main.py
+```
+
+### Training Parameters
+
+Edit `params.yaml` to modify training parameters:
+
+```yaml
+AUGMENTATION: True
+IMAGE_SIZE: [224, 224, 3]
+BATCH_SIZE: 16
+INCLUDE_TOP: False
+EPOCHS: 5
+CLASSES: 2
+WEIGHTS: imagenet
+LEARNING_RATE: 0.01
+```
+
+---
+
+## Making Predictions
+
+### Using the Web Interface
+
+1. Open the application in browser
+2. Upload a kidney CT scan image
+3. Click predict
+
+### Using the API
+
+```python
+import requests
+import base64
+
+# Encode image
+with open('image.jpg', 'rb') as f:
+    img_data = base64.b64encode(f.read()).decode('utf-8')
+
+# Make prediction
+response = requests.post(
+    'http://localhost:8080/predict',
+    json={'image': img_data}
+)
+print(response.json())
+```
+
+---
+
+## MLflow with DagsHub
+
+### Using dagshub.init() (Recommended)
+
+Instead of using environment variables, you can use dagshub.init() directly in your code:
+
+```python
+import dagshub
+dagshub.init(repo_owner='your_username', repo_name='MLOps-Assignment', mlflow=True)
+
+import mlflow
+with mlflow.start_run():
+    mlflow.log_param('parameter name', 'value')
+    mlflow.log_metric('metric name', 1)
+```
+
+### Alternative: Using Environment Variables
+
+If you prefer environment variables, add these to your shell:
+
+```bash
+export MLFLOW_TRACKING_URI=https://dagshub.com/your_username/your_repo.mlflow
+export MLFLOW_TRACKING_USERNAME=your_username
+export MLFLOW_TRACKING_PASSWORD=your_token
+```
+
+### Run MLflow UI
+
+```bash
+mlflow ui
+```
+
+Or access via DagsHub:
+
+```
+https://dagshub.com/your_username/your_repo/mlflow
+```
+
+---
+
+## DVC Commands
+
+```bash
+# Initialize DVC
+dvc init
+
+# Reproduce pipeline
+dvc repro
+
+# Show pipeline DAG
+dvc dag
+
+# Pull data
+dvc pull
+
+# Push data
+dvc push
+```
+
+---
+
+## Testing the Model
+
+### Test with Normal Image
+
+```bash
+# Copy a normal image to inputImage.jpg
+cp artifacts/data_ingestion/kidney-ct-scan-image/Normal/Normal-\(637\).jpg inputImage.jpg
+
+# Run prediction
+python -c "
+from cnnClassifier.pipeline.prediction import PredictionPipeline
+classifier = PredictionPipeline('inputImage.jpg')
+result = classifier.predict()
+print(result)
+"
+```
+
+### Test with Tumor Image
+
+```bash
+# Copy a tumor image to inputImage.jpg
+cp artifacts/data_ingestion/kidney-ct-scan-image/Tumor/Tumor-\(701\).jpg inputImage.jpg
+
+# Run prediction
+python -c "
+from cnnClassifier.pipeline.prediction import PredictionPipeline
+classifier = PredictionPipeline('inputImage.jpg')
+result = classifier.predict()
+print(result)
+"
+```
+
+---
+
+## Project Classes
+
+- **Normal**: Healthy kidney CT scan
+- **Tumor**: Kidney with tumor
+
+---
 
 ## About MLflow & DVC
 
-MLflow
+### MLflow
 
- - Its Production Grade
- - Trace all of your expriements
- - Logging & taging your model
+- Production-grade experiment tracking
+- Trace all your experiments
+- Logging & tagging your model
+- Model registry for version management
 
+### DVC
 
-DVC 
+- Lightweight experiment tracker
+- Data versioning and pipeline orchestration
+- Git-based workflow for ML projects
 
- - Its very lite weight for POC only
- - lite weight expriements tracker
- - It can perform Orchestration (Creating Pipelines)
+---
 
+## Troubleshooting
 
+### Pod keeps restarting
 
-# AWS-CICD-Deployment-with-Github-Actions
+Check pod logs:
+```bash
+kubectl logs -n mlops <pod-name>
+```
 
-## 1. Login to AWS console.
+### Image not loading
 
-## 2. Create IAM user for deployment
+Ensure the image is properly loaded in Minikube:
+```bash
+minikube image ls | grep kidney
+```
 
-	#with specific access
+### Out of memory
 
-	1. EC2 access : It is virtual machine
+Increase memory in deployment or reduce batch size in params.yaml
 
-	2. ECR: Elastic Container registry to save your docker image in aws
+---
 
+## License
 
-	#Description: About the deployment
+MIT License - See LICENSE file
 
-	1. Build docker image of the source code
+---
 
-	2. Push your docker image to ECR
+## Credits
 
-	3. Launch Your EC2 
-
-	4. Pull Your image from ECR in EC2
-
-	5. Lauch your docker image in EC2
-
-	#Policy:
-
-	1. AmazonEC2ContainerRegistryFullAccess
-
-	2. AmazonEC2FullAccess
-
-	
-## 3. Create ECR repo to store/save docker image
-    - Save the URI: 566373416292.dkr.ecr.us-east-1.amazonaws.com/chicken
-
-	
-## 4. Create EC2 machine (Ubuntu) 
-
-## 5. Open EC2 and Install docker in EC2 Machine:
-	
-	
-	#optinal
-
-	sudo apt-get update -y
-
-	sudo apt-get upgrade
-	
-	#required
-
-	curl -fsSL https://get.docker.com -o get-docker.sh
-
-	sudo sh get-docker.sh
-
-	sudo usermod -aG docker ubuntu
-
-	newgrp docker
-	
-# 6. Configure EC2 as self-hosted runner:
-    setting>actions>runner>new self hosted runner> choose os> then run command one by one
-
-
-# 7. Setup github secrets:
-
-    AWS_ACCESS_KEY_ID=
-
-    AWS_SECRET_ACCESS_KEY=
-
-    AWS_REGION = us-east-1
-
-    AWS_ECR_LOGIN_URI = demo>>  566373416292.dkr.ecr.ap-south-1.amazonaws.com
-
-    ECR_REPOSITORY_NAME = simple-app
-
-
+- Original repository: [Krish Naik](https://github.com/krishnaik06/Kidney-Disease-Classification-Deep-Learning-Project)
+- Dataset: Kidney CT Scan Images

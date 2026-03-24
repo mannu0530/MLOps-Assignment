@@ -1,0 +1,57 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kidney-disease-classifier
+  namespace: mlops
+  labels:
+    app: kidney-disease-classifier
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kidney-disease-classifier
+  template:
+    metadata:
+      labels:
+        app: kidney-disease-classifier
+    spec:
+      containers:
+      - name: kidney-disease-classifier
+        image: kidney-disease-classifier:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8080
+        env:
+        - name: LANG
+          value: "en_US.UTF-8"
+        - name: LC_ALL
+          value: "en_US.UTF-8"
+        resources:
+          requests:
+            memory: "2Gi"
+            cpu: "1000m"
+          limits:
+            memory: "4Gi"
+            cpu: "2000m"
+        volumeMounts:
+        - name: model-storage
+          mountPath: /app/artifacts
+      volumes:
+      - name: model-storage
+        emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kidney-disease-classifier-service
+  namespace: mlops
+spec:
+  type: NodePort
+  selector:
+    app: kidney-disease-classifier
+  ports:
+  - port: 8080
+    targetPort: 8080
+    nodePort: 30080
+    protocol: TCP
+    name: http
