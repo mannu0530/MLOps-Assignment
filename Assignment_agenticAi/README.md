@@ -412,3 +412,21 @@ kubectl rollout restart deployment/assignment-agentic-ai-deployment
 ## License
 
 This project is for educational purposes as part of the FreeCodeCamp LangGraph Course.
+
+---
+
+## Quick Start Scripts
+
+### Deploy
+
+```bash
+cd Assignment_agenticAi
+./deploy.sh
+```
+
+### Destroy
+
+```bash
+cd Assignment_agenticAi
+./destroy.sh
+```
